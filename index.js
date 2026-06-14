@@ -10,7 +10,12 @@ const client = new tmi.Client({ channels: [ TWITCH_CHANNEL ] });
 client.connect().catch(err => console.error(err));
 
 client.on('message', (channel, tags, message) => {
-    messageQueue.push({ user: tags['display-name'], text: message });
+    const userColor = tags['color'] || '#FFFFFF'; 
+    messageQueue.push({ 
+        user: tags['display-name'], 
+        text: message,
+        color: userColor
+    });
     if (messageQueue.length > 25) messageQueue.shift();
 });
 
