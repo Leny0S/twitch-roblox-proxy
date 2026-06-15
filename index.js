@@ -34,25 +34,25 @@ client.on("cheer", (channel, userstate, message) => {
 app.get('/messages', (req, res) => { res.json(messageQueue); });
 
 app.get('/stats', (req, res) => {
-    let follower = "Aucun";
-    const url = `https://twitchapi.aidenwallis.co/twitch/latest_follower?channel=${TWITCH_CHANNEL}`;
+    const url = `https://decapi.me/twitch/latest_follower?channel=${TWITCH_CHANNEL}`;
     const options = { headers: { 'User-Agent': 'Mozilla/5.0' } };
 
     https.get(url, options, (apiRes) => {
         let body = '';
         apiRes.on('data', (chunk) => body += chunk);
         apiRes.on('end', () => {
-            if (apiRes.statusCode === 200 && body.trim().length > 0 && !body.includes("Not Found")) {
-                follower = body.trim();
-            }
             res.json({ 
-                follower: follower, 
+                follower: body.trim() || "Aucun", 
                 sub: latestSubscriber, 
                 cheer: latestCheerer 
             });
         });
-    }).on('error', () => {
-        res.json({ follower, sub, cheer });
+    }).on('error', (err) => {
+        res.json({ 
+            follower: "Erreur de connexion", 
+            sub: latestSubscriber, 
+            cheer: latestCheerer 
+        });
     });
 });
 
