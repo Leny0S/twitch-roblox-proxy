@@ -20,7 +20,11 @@ app.get('/messages', (req, res) => { res.json(messageQueue); });
 
 app.get('/stats', async (req, res) => {
     try {
-        const response = await fetch(`https://api.streamelements.com/v2/activities/${SE_ACCOUNT_ID}?limit=20`);
+        const response = await fetch(`https://api.streamelements.com/v2/activities/${SE_ACCOUNT_ID}?limit=20`, {
+            headers: {
+                'Authorization': `Bearer ${process.env.SE_TOKEN}`
+            }
+        });
         if (!response.ok) throw new Error("API_Error");
         const data = await response.json();
         
