@@ -33,18 +33,22 @@ client.on("cheer", (channel, userstate, message) => {
 app.get('/messages', (req, res) => { res.json(messageQueue); });
 
 app.get('/stats', async (req, res) => {
-    let follower = "Aucun";
     try {
-        const response = await fetch(`https://decapi.me/twitch/latest_follower?channel=${TWITCH_CHANNEL}`);
+        const response = await fetch(`https://decapi.me/twitch/latest_follower?channel=${TWITCH_CHANNEL}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
         if (response.ok) {
-            follower = await response.text();
+            const text = await response.text();
+            return res.json({ 
+                follower: text.trim(), 
+                sub: latestSubscriber, 
+                cheer: latestCheerer 
+            });
         }
-    } catch (err) {
-        follower = "Erreur";
-    }
+    } catch (err) {}
 
     res.json({ 
-        follower: follower.trim(), 
+        follower: "Aucun", 
         sub: latestSubscriber, 
         cheer: latestCheerer 
     });
