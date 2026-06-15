@@ -3,10 +3,12 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const SE_ACCOUNT_ID = "646a48fe2c8b5bc99339b5bb"; 
 const TWITCH_CHANNEL = "lenyos_"; 
 
 let messageQueue = [];
+let latestSubscriber = "En attente...";
+let latestCheerer = "En attente...";
+
 const client = new tmi.Client({ channels: [ TWITCH_CHANNEL ] });
 client.connect().catch(err => console.error(err));
 
@@ -16,34 +18,36 @@ client.on('message', (channel, tags, message) => {
     if (messageQueue.length > 25) messageQueue.shift();
 });
 
+client.on("subscription", (channel, username, method, message, userstate) => {
+    latestSubscriber = username;
+});
+
+client.on("resub", (channel, username, months, message, userstate, methods) => {
+    latestSubscriber = username;
+});
+
+client.on("cheer", (channel, userstate, message) => {
+    latestCheerer = userstate['display-name'] || userstate['username'];
+});
+
 app.get('/messages', (req, res) => { res.json(messageQueue); });
 
 app.get('/stats', async (req, res) => {
+    let follower = "Aucun";
     try {
-        const response = await fetch(`https://api.streamelements.com/v2/activities/${SE_ACCOUNT_ID}?limit=20`, {
-            headers: {
-                'Authorization': `Bearer ${process.env.SE_TOKEN}`
-            }
-        });
-        if (!response.ok) throw new Error("API_Error");
-        const data = await response.json();
-        
-        let follower = "Aucun";
-        let sub = "Aucun";
-        let cheer = "Aucun";
-        
-        if (Array.isArray(data)) {
-            for (let activity of data) {
-                if (activity.type === 'follow' && follower === "Aucun") follower = activity.username || "Aucun";
-                if (activity.type === 'subscriber' && sub === "Aucun") sub = activity.username || "Aucun";
-                if (activity.type === 'cheer' && cheer === "Aucun") cheer = activity.username || "Aucun";
-            }
+        const response = await fetch(`https://decapi.me/twitch/latest_follower?channel=${TWITCH_CHANNEL}`);
+        if (response.ok) {
+            follower = await response.text();
         }
-        
-        res.json({ follower, sub, cheer });
     } catch (err) {
-        res.json({ follower: "Aucun", sub: "Aucun", cheer: "Aucun" });
+        follower = "Erreur";
     }
+
+    res.json({ 
+        follower: follower.trim(), 
+        sub: latestSubscriber, 
+        cheer: latestCheerer 
+    });
 });
 
 app.get('/', (req, res) => { res.send("Proxy_OK"); });
