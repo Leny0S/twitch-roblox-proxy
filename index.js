@@ -1,5 +1,6 @@
 const tmi = require('tmi.js');
 const express = require('express');
+const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -32,25 +33,26 @@ client.on("cheer", (channel, userstate, message) => {
 
 app.get('/messages', (req, res) => { res.json(messageQueue); });
 
-app.get('/stats', async (req, res) => {
-    try {
-        const response = await fetch(`https://decapi.me/twitch/latest_follower?channel=${TWITCH_CHANNEL}`, {
-            headers: { 'User-Agent': 'Mozilla/5.0' }
-        });
-        if (response.ok) {
-            const text = await response.text();
-            return res.json({ 
-                follower: text.trim(), 
+app.get('/stats', (req, res) => {
+    const url = `https://decapi.me/twitch/latest_follower?channel=${TWITCH_CHANNEL}`;
+    const options = { headers: { 'User-Agent': 'Mozilla/5.0' } };
+
+    https.get(url, options, (apiRes) => {
+        let body = '';
+        apiRes.on('data', (chunk) => body += chunk);
+        apiRes.on('end', () => {
+            res.json({ 
+                follower: body.trim() || "Aucun", 
                 sub: latestSubscriber, 
                 cheer: latestCheerer 
             });
-        }
-    } catch (err) {}
-
-    res.json({ 
-        follower: "Aucun", 
-        sub: latestSubscriber, 
-        cheer: latestCheerer 
+        });
+    }).on('error', (err) => {
+        res.json({ 
+            follower: "Erreur de connexion", 
+            sub: latestSubscriber, 
+            cheer: latestCheerer 
+        });
     });
 });
 
